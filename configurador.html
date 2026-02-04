@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Configurador Maestro - Auditoría Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #3498db; --accent: #27ae60; --warning: #f39c12; --danger: #e74c3c; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 10px; scroll-behavior: smooth; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 15px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h2 { color: var(--primary); text-align: center; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 1.5em; }
+        .area-indicator { text-align: center; font-weight: bold; color: var(--secondary); text-transform: uppercase; margin-bottom: 15px; font-size: 0.8em; letter-spacing: 1px; }
+        
+        /* TABS RESPONSIVAS */
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; border-bottom: 2px solid #eee; overflow-x: auto; padding-bottom: 5px; -webkit-overflow-scrolling: touch; }
+        .tab { padding: 10px 15px; cursor: pointer; border: none; background: none; font-weight: bold; color: #95a5a6; transition: 0.3s; white-space: nowrap; font-size: 0.85em; }
+        .tab.active { color: var(--secondary); border-bottom: 3px solid var(--secondary); }
+
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .form-box { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e9ecef; }
+        .form-editing { border: 2px solid var(--warning); background: #fffdf5; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+        .full-width { grid-column: 1 / -1; }
+        label { display: block; font-size: 0.75em; font-weight: bold; margin-bottom: 4px; color: #34495e; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        .btn-action { width: 100%; padding: 12px; border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 8px; font-size: 0.9em; }
+        .btn-green { background: var(--accent); }
+        .btn-orange { background: var(--warning); }
+        .btn-blue { background: var(--secondary); }
+        .btn-outline { background: transparent; color: var(--secondary); border: 2px solid var(--secondary); }
+
+        .resumen-puntos { background: var(--primary); color: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .total-badge { font-size: 1.4em; font-weight: bold; padding: 5px 12px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 2px solid transparent; }
+        .puntos-ok { border-color: var(--accent); color: #2ecc71; }
+        .puntos-error { border-color: var(--danger); color: #ff7675; }
+
+        .seccion-header { background: #edf2f7; padding: 12px; margin-top: 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: var(--primary); border-left: 5px solid var(--secondary); font-size: 0.9em; }
+        
+        /* CONTENEDOR DE TABLA RESPONSIVA */
+        .seccion-contenido { display: none; margin-bottom: 15px; border: 1px solid #edf2f7; border-top: none; border-radius: 0 0 8px 8px; overflow-x: auto; }
+        .seccion-contenido.active { display: block; }
+
+        table { width: 100%; border-collapse: collapse; background: white; min-width: 450px; } /* Asegura espacio para Pts y Acciones */
+        th, td { text-align: left; padding: 10px; border-bottom: 1px solid #edf2f7; font-size: 0.85em; }
+        th { background: #f8fafc; color: #64748b; text-transform: uppercase; font-size: 0.7em; }
+        
+        /* COLUMNAS ESPECÍFICAS */
+        .col-pts { width: 45px; text-align: center; font-weight: bold; }
+        .col-actions { width: 90px; text-align: right; white-space: nowrap; }
+
+        .btn-icon { border: none; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: white; font-size: 1.1em; }
+        .edit-btn { background: var(--warning); margin-right: 4px; }
+        .del-btn { background: var(--danger); }
+        .tag-depto { font-size: 0.7em; background: #e2e8f0; color: #4a5568; padding: 2px 6px; border-radius: 4px; font-weight: bold; display: inline-block; margin-top: 4px; }
+
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            h2 { font-size: 1.2em; }
+            .grid-3 { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div style="max-width: 1100px; margin: auto; padding: 5px 0;">
+    <a id="btn-volver-menu" href="index.html" style="background: #ecf0f1; color: #2c3e50; padding: 8px 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.75em; border: 1px solid #ddd;">⬅ Volver</a>
+</div>
+    
+<div class="container">
+    <div id="area-label" class="area-indicator">Cargando área...</div>
+    <h2>⚙️ Configurador Maestro</h2>
+    
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('tab-preguntas')">📋 Preguntas</button>
+        <button class="tab" onclick="switchTab('tab-bodegas')">📍 Ubicaciones</button>
+        <button class="tab" onclick="switchTab('tab-auditores')">👥 Auditores</button>
+        <button class="tab" onclick="switchTab('tab-backup')">💾 CSV / Respaldo</button>
+    </div>
+
+    <div id="tab-preguntas" class="section active">
+        <div class="resumen-puntos">
+            <div style="flex: 1;"><strong>Total Puntos:</strong><div id="desglose-sumas" style="font-size: 0.75em; margin-top: 5px; color: #bdc3c7;">Calculando...</div></div>
+            <div id="total-puntos" class="total-badge">0 / 100</div>
+        </div>
+        <div class="form-box" id="p-form-box">
+            <div class="grid-3">
+                <div><label>📂 Título Sección</label><input type="text" id="p-tit" placeholder="Ej: 1. Orden"></div>
+                <div><label>📑 Cód.</label><input type="text" id="p-des" placeholder="Ej: 1.1"></div>
+                <div><label>⚖️ Pts</label><input type="number" id="p-pts" value="10"></div>
+                <div><label>🏢 Depto</label><select id="p-depto-filtro"><option value="TODOS">TODOS</option></select></div>
+                <div class="full-width"><label>❓ Pregunta</label><textarea id="p-pre" rows="2"></textarea></div>
+            </div>
+            <button class="btn-action btn-green" id="btn-save-pregunta" onclick="guardarPregunta()">Guardar Pregunta</button>
+            <button class="btn-action" id="btn-cancel-edit" style="display:none; background:#95a5a6;" onclick="resetForm('p')">Cancelar</button>
+        </div>
+        <div id="render-preguntas-acordeon"></div>
+    </div>
+
+    <div id="tab-bodegas" class="section">
+        <div class="form-box" id="b-form-box">
+            <div class="grid-3">
+                <div><label>📍 Localización</label><input type="text" id="b-loc"></div>
+                <div><label>🏢 Departamento</label><input type="text" id="b-dep"></div>
+                <div><label>📦 Nombre</label><input type="text" id="b-nom"></div>
+            </div>
+            <button class="btn-action btn-green" id="btn-save-bodega" onclick="guardarBodega()">Registrar Unidad</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table><thead><tr><th>Localización</th><th>Depto</th><th>Nombre</th><th class="col-actions">Acciones</th></tr></thead><tbody id="tbody-bodegas"></tbody></table>
+        </div>
+    </div>
+
+    <div id="tab-auditores" class="section">
+        <div class="form-box">
+            <div class="grid-3">
+                <div><label>👤 Nombre</label><input type="text" id="a-nom"></div>
+                <div><label>💼 Puesto</label><input type="text" id="a-pue"></div>
+            </div>
+            <button class="btn-action btn-green" onclick="guardarAuditor()">Registrar Auditor</button>
+        </div>
+        <div style="overflow-x: auto;">
+            <table><thead><tr><th>Nombre</th><th>Puesto</th><th class="col-actions">Acciones</th></tr></thead><tbody id="tbody-auditores"></tbody></table>
+        </div>
+    </div>
+
+    <div id="tab-backup" class="section">
+        <div class="form-box">
+            <h3>Excel / CSV</h3>
+            <button class="btn-action btn-outline" onclick="descargarDatosCSV()">📊 Bajar Datos CSV</button>
+            <hr>
+            <input type="file" id="csvFile" accept=".csv" style="margin-bottom:10px;">
+            <button class="btn-action btn-orange" onclick="importarCSV()">📤 Subir CSV</button>
+        </div>
+        <div class="form-box">
+            <h3>Respaldo JSON</h3>
+            <button class="btn-action btn-blue" onclick="exportarDatos()">📥 Exportar JSON</button>
+            <hr>
+            <input type="file" id="jsonFile" accept=".json" style="margin-bottom:10px;">
+            <button class="btn-action btn-green" onclick="importarJSON()">📥 Restaurar JSON</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const SUPABASE_URL = 'https://xjckzbegtvianurfvubp.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqY2t6YmVndHZpYW51cmZ2dWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxOTYzMzUsImV4cCI6MjA4Mjc3MjMzNX0.64zrKi0p1KiDwtBODLRf8O4sRvnn0o9QyoQUYHvVFd0';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const getAreaURL = () => new URLSearchParams(window.location.search).get('tipo') || 'almacen';
+    let editandoId = null;
+    let departamentosUnicos = [];
+
+    async function init() {
+        const tipoArea = getAreaURL();
+        document.getElementById('area-label').innerText = `MODO: ${tipoArea.toUpperCase()}`;
+        document.getElementById('btn-volver-menu').href = `menu_area.html?tipo=${tipoArea}`;
+        await cargarBodegas();
+        await cargarAuditores();
+        cargarPreguntas();
+    }
+
+    function switchTab(id) {
+        document.querySelectorAll('.section, .tab').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    async function cargarAuditores() {
+        const { data } = await _supabase.from('auditores').select('*').eq('activo', true).order('nombre');
+        const tbody = document.getElementById('tbody-auditores');
+        if (data) tbody.innerHTML = data.map(a => `<tr><td><strong>${a.nombre}</strong></td><td>${a.puesto}</td><td class="col-actions"><button class="btn-icon del-btn" onclick="eliminarRegistro('auditores','${a.id}')">🗑️</button></td></tr>`).join('');
+    }
+
+    async function guardarAuditor() {
+        const nombre = document.getElementById('a-nom').value;
+        const puesto = document.getElementById('a-pue').value;
+        if(!nombre) return alert("Ingresa el nombre");
+        await _supabase.from('auditores').insert([{ nombre, puesto, activo: true }]);
+        resetForm('a'); cargarAuditores();
+    }
+
+    async function cargarPreguntas() {
+        const areaActual = getAreaURL();
+        const { data } = await _supabase.from('configuracion_preguntas').select('*').eq('tipo', areaActual);
+        data.sort((a, b) => a.desglose.localeCompare(b.desglose, undefined, { numeric: true }));
+        
+        const container = document.getElementById('render-preguntas-acordeon');
+        const resumen = document.getElementById('desglose-sumas');
+        const badge = document.getElementById('total-puntos');
+        
+        let sumas = {}, total = 0;
+        data.forEach(p => {
+            let pts = parseFloat(p.ponderacion) || 0;
+            sumas[p.titulo] = (sumas[p.titulo] || 0) + pts;
+            total += pts;
+        });
+
+        badge.innerText = `${total.toFixed(1)} / 100`;
+        badge.className = `total-badge ${total.toFixed(1) == 100.0 ? 'puntos-ok' : 'puntos-error'}`;
+        resumen.innerText = Object.keys(sumas).map(t => `${t}: ${sumas[t].toFixed(1)}`).join(' | ');
+
+        let html = '', cur = '';
+        data.forEach(p => {
+            if (p.titulo !== cur) {
+                if (cur !== '') html += `</tbody></table></div>`;
+                html += `<div class="seccion-header" onclick="this.nextElementSibling.classList.toggle('active')"><span>${p.titulo} (${sumas[p.titulo].toFixed(1)} pts)</span><span>🔽</span></div><div class="seccion-contenido"><table><thead><tr><th width="15%">Cód</th><th>Pregunta</th><th class="col-pts">Pts</th><th class="col-actions">Acciones</th></tr></thead><tbody>`;
+                cur = p.titulo;
+            }
+            html += `<tr><td><strong>${p.desglose}</strong></td><td>${p.pregunta}<br><span class="tag-depto">🏢 ${p.aplica_a_departamento || 'TODOS'}</span></td><td class="col-pts">${p.ponderacion}</td><td class="col-actions"><button class="btn-icon edit-btn" onclick='prepararEdicionPregunta(${JSON.stringify(p)})'>✏️</button><button class="btn-icon del-btn" onclick="eliminarRegistro('configuracion_preguntas','${p.id}')">🗑️</button></td></tr>`;
+        });
+        container.innerHTML = html + (cur ? `</tbody></table></div>` : '');
+        actualizarMenuDepartamentos();
+    }
+
+    async function guardarPregunta() {
+        const payload = { titulo: document.getElementById('p-tit').value, desglose: document.getElementById('p-des').value, pregunta: document.getElementById('p-pre').value, ponderacion: parseFloat(document.getElementById('p-pts').value), tipo: getAreaURL(), aplica_a_departamento: document.getElementById('p-depto-filtro').value };
+        if(editandoId) await _supabase.from('configuracion_preguntas').update(payload).eq('id', editandoId);
+        else await _supabase.from('configuracion_preguntas').insert([payload]);
+        resetForm('p'); cargarPreguntas();
+    }
+
+    function prepararEdicionPregunta(p) {
+        document.getElementById('p-tit').value = p.titulo; document.getElementById('p-des').value = p.desglose; document.getElementById('p-pre').value = p.pregunta; document.getElementById('p-pts').value = p.ponderacion; document.getElementById('p-depto-filtro').value = p.aplica_a_departamento;
+        editandoId = p.id; document.getElementById('p-form-box').classList.add('form-editing'); document.getElementById('btn-save-pregunta').innerText = "💾 Guardar Cambios"; document.getElementById('btn-save-pregunta').className = "btn-action btn-orange"; document.getElementById('btn-cancel-edit').style.display = "block";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function cargarBodegas() {
+        const { data } = await _supabase.from('bodegas').select('*').eq('tipo', getAreaURL()).order('localizacion');
+        departamentosUnicos = [...new Set(data.map(b => b.departamento))].sort();
+        document.getElementById('tbody-bodegas').innerHTML = data.map(b => `<tr><td>${b.localizacion}</td><td><strong>${b.departamento}</strong></td><td>${b.nombre}</td><td class="col-actions"><button class="btn-icon edit-btn" onclick='prepararEdicionBodega(${JSON.stringify(b)})'>✏️</button><button class="btn-icon del-btn" onclick="eliminarRegistro('bodegas','${b.id}')">🗑️</button></td></tr>`).join('');
+        actualizarMenuDepartamentos();
+    }
+
+    async function guardarBodega() {
+        const payload = { localizacion: document.getElementById('b-loc').value, departamento: document.getElementById('b-dep').value, nombre: document.getElementById('b-nom').value, tipo: getAreaURL() };
+        if(editandoId) await _supabase.from('bodegas').update(payload).eq('id', editandoId);
+        else await _supabase.from('bodegas').insert([payload]);
+        resetForm('b'); cargarBodegas();
+    }
+
+    function prepararEdicionBodega(b) {
+        document.getElementById('b-loc').value = b.localizacion; document.getElementById('b-dep').value = b.departamento; document.getElementById('b-nom').value = b.nombre;
+        editandoId = b.id; document.getElementById('b-form-box').classList.add('form-editing'); document.getElementById('btn-save-bodega').innerText = "💾 Guardar Cambios"; document.getElementById('btn-save-bodega').className = "btn-action btn-orange";
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function actualizarMenuDepartamentos() {
+        const select = document.getElementById('p-depto-filtro');
+        const val = select.value;
+        select.innerHTML = '<option value="TODOS">TODOS</option>' + departamentosUnicos.map(d => `<option value="${d}">${d}</option>`).join('');
+        if (departamentosUnicos.includes(val)) select.value = val;
+    }
+
+    // --- BACKUP ---
+    async function descargarDatosCSV() {
+        const area = getAreaURL();
+        const { data: p } = await _supabase.from('configuracion_preguntas').select('titulo, desglose, pregunta, ponderacion, aplica_a_departamento').eq('tipo', area);
+        const headers = "titulo,desglose,pregunta,ponderacion,aplica_a_departamento\n";
+        const rows = p.map(p => [`"${p.titulo}"`, `"${p.desglose}"`, `"${p.pregunta}"`, p.ponderacion, `"${p.aplica_a_departamento}"`].join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + headers + rows], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `datos_${area}.csv`; a.click();
+    }
+
+    async function importarCSV() {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const rows = e.target.result.split('\n');
+            const headers = rows[0].split(',').map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
+            const preguntas = [];
+            for(let i=1; i<rows.length; i++) {
+                const cols = rows[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                if(!cols || cols.length < 4) continue;
+                let data = {}; headers.forEach((h, idx) => { let v = cols[idx] ? cols[idx].trim() : ""; data[h] = v.replace(/^"|"$/g, '').replace(/""/g, '"'); });
+                preguntas.push({ titulo: data.titulo, desglose: data.desglose, pregunta: data.pregunta, ponderacion: parseFloat(data.ponderacion), aplica_a_departamento: data.aplica_a_departamento || "TODOS", tipo: getAreaURL() });
+            }
+            await _supabase.from('configuracion_preguntas').insert(preguntas);
+            cargarPreguntas();
+        };
+        reader.readAsText(document.getElementById('csvFile').files[0], "UTF-8");
+    }
+
+    async function exportarDatos() {
+        const area = getAreaURL();
+        const { data: p } = await _supabase.from('configuracion_preguntas').select('*').eq('tipo', area);
+        const { data: b } = await _supabase.from('bodegas').select('*').eq('tipo', area);
+        const blob = new Blob([JSON.stringify({area, preguntas:p, bodegas:b}, null, 2)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup_${area}.json`; a.click();
+    }
+
+    async function importarJSON() {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const c = JSON.parse(e.target.result);
+            const clean = (l) => l.map(({id, created_at, ...r}) => ({...r, tipo: getAreaURL()}));
+            if(c.preguntas) await _supabase.from('configuracion_preguntas').insert(clean(c.preguntas));
+            if(c.bodegas) await _supabase.from('bodegas').insert(clean(c.bodegas));
+            cargarPreguntas(); cargarBodegas();
+        };
+        reader.readAsText(document.getElementById('jsonFile').files[0]);
+    }
+
+    function resetForm(prefix) {
+        editandoId = null;
+        if(prefix==='p') { 
+            document.getElementById('p-pre').value=''; document.getElementById('p-tit').value=''; document.getElementById('p-des').value=''; 
+            document.getElementById('btn-save-pregunta').innerText="Guardar Pregunta"; 
+            document.getElementById('btn-save-pregunta').className="btn-action btn-green";
+            document.getElementById('p-form-box').classList.remove('form-editing');
+            document.getElementById('btn-cancel-edit').style.display = "none";
+        }
+        if(prefix==='b') { 
+            document.getElementById('b-loc').value=''; document.getElementById('b-dep').value=''; document.getElementById('b-nom').value=''; 
+            document.getElementById('btn-save-bodega').innerText="Registrar Unidad";
+            document.getElementById('btn-save-bodega').className="btn-action btn-green";
+            document.getElementById('b-form-box').classList.remove('form-editing');
+        }
+        if(prefix==='a') { document.getElementById('a-nom').value=''; document.getElementById('a-pue').value=''; }
+    }
+
+    async function eliminarRegistro(tabla, id) {
+        if(confirm("¿Eliminar registro?")) { 
+            await _supabase.from(tabla).delete().eq('id', id); 
+            if(tabla==='auditores') cargarAuditores();
+            else if(tabla==='bodegas') cargarBodegas();
+            else cargarPreguntas();
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>

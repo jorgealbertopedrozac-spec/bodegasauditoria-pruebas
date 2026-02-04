@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Área</title>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #3498db; --bg: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        .container { max-width: 500px; margin: 40px auto; text-align: center; }
+        .header { margin-bottom: 30px; }
+        .header h1 { margin: 0; text-transform: uppercase; letter-spacing: 2px; color: var(--primary); }
+        .nav-grid { display: grid; gap: 15px; }
+        .nav-card { 
+            background: white; padding: 20px; border-radius: 15px; text-decoration: none; 
+            color: var(--primary); display: flex; align-items: center; gap: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: left;
+            border: 1px solid #eee; transition: 0.2s;
+        }
+        .nav-card:hover { background: #fdfdfd; transform: scale(1.02); }
+        .icon { font-size: 2rem; min-width: 50px; text-align: center; }
+        .info h3 { margin: 0; font-size: 1.1rem; }
+        .info p { margin: 3px 0 0 0; font-size: 0.8rem; color: #95a5a6; }
+        .btn-volver { display: inline-block; margin-top: 30px; text-decoration: none; color: #7f8c8d; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="titulo-area">Cargando...</h1>
+            <p>Panel de Gestión de Calidad</p>
+        </div>
+
+        <div class="nav-grid">
+            <a id="link-eval" href="#" class="nav-card" style="border-left: 6px solid #27ae60;">
+                <span class="icon">📝</span>
+                <div class="info">
+                    <h3>Nueva Evaluación</h3>
+                    <p>Realizar checklist del área</p>
+                </div>
+            </a>
+
+            <a id="link-hist" href="#" class="nav-card" style="border-left: 6px solid #3498db;">
+                <span class="icon">📊</span>
+                <div class="info">
+                    <h3>Historial y Métricas</h3>
+                    <p>Resultados y tendencias</p>
+                </div>
+            </a>
+
+            <a id="link-conf" href="#" class="nav-card" style="border-left: 6px solid #f39c12;">
+                <span class="icon">⚙️</span>
+                <div class="info">
+                    <h3>Configuración</h3>
+                    <p>Preguntas y unidades del área</p>
+                </div>
+            </a>
+        </div>
+
+        <a href="index.html" class="btn-volver">⬅ Cambiar de Área</a>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const tipo = urlParams.get('tipo') || 'almacen';
+
+        // Personalizar UI
+        document.getElementById('titulo-area').innerText = tipo;
+        
+        // Inyectar el tipo en todos los enlaces
+        document.getElementById('link-eval').href = `evaluacion.html?tipo=${tipo}`;
+        document.getElementById('link-hist').href = `historial.html?tipo=${tipo}`;
+        document.getElementById('link-conf').href = `configurador.html?tipo=${tipo}`;
+    </script>
+</body>
+</html>

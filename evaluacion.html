@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Realizar Auditoría Pro - Dinámica</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { --primary: #2c3e50; --success: #27ae60; --danger: #e74c3c; --bg: #f0f2f5; --accent: #3498db; }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg); 
+            margin: 0; 
+            padding: 10px; 
+            padding-top: 75px; 
+            padding-bottom: 120px; 
+        }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        
+        .score-bar {
+            position: fixed; top: 0; left: 0; width: 100%; background: var(--primary);
+            color: white; padding: 10px 15px; z-index: 2000; display: flex;
+            justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            font-weight: bold; border-bottom: 3px solid var(--accent);
+            box-sizing: border-box;
+        }
+
+        .btn-inicio-flotante {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        h2 { text-align: center; color: var(--primary); margin-top: 10px; }
+        .area-tag { text-align: center; font-weight: bold; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; font-size: 0.9em; }
+        
+        .header-info { background: #fff; padding: 15px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 20px; }
+        
+        .seccion-titulo { 
+            background: var(--primary); color: white; padding: 12px; border-radius: 8px; 
+            margin-top: 20px; font-weight: bold; text-transform: uppercase; font-size: 0.85em; 
+            cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .seccion-contenido { display: block; padding-top: 10px; }
+        .seccion-contenido.hidden { display: none; }
+
+        .desglose-titulo { font-weight: bold; color: #555; margin: 20px 0 10px 10px; border-left: 4px solid var(--success); padding-left: 10px; font-size: 1.1em; }
+        .pregunta-card { background: #fff; padding: 18px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #eee; transition: 0.3s; }
+        
+        .opciones { display: flex; gap: 12px; margin: 15px 0; }
+        .radio-btn { flex: 1; }
+        .radio-btn input { display: none; }
+        .radio-btn label { 
+            display: block; text-align: center; padding: 12px; border: 2px solid #ddd; 
+            border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.9em;
+            transition: 0.3s;
+        }
+        .check-c:checked + label { background: var(--success); color: white; border-color: var(--success); }
+        .check-nc:checked + label { background: var(--danger); color: white; border-color: var(--danger); }
+
+        .evidencia-box { background: #f8f9fa; padding: 12px; border-radius: 8px; border: 1px dashed #ccc; }
+        .input-obs { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; }
+        .btn-foto { width: 100%; background: #546e7a; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        
+        .preview-fotos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+        .thumb-container { position: relative; width: 70px; height: 70px; }
+        .thumb { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
+        .btn-del-foto { position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; border-radius: 50%; width: 22px; height: 22px; font-size: 14px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        #btn-finalizar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; background: var(--primary); color: white; border: none; padding: 18px; border-radius: 50px; font-size: 1.2em; font-weight: bold; cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.3); z-index: 1000; }
+        #btn-finalizar:disabled { background: #95a5a6; }
+        select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; background: #fff; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="score-bar">
+    <a id="btn-regresar" href="index.html" class="btn-inicio-flotante">⬅ Inicio</a>
+    <div style="font-size: 0.85em;">Progreso: <span id="realtime-progress">0</span>/<span id="realtime-total-q">0</span></div>
+    <div style="font-size: 1.2em;"><span id="realtime-score">0.0</span>%</div>
+</div>
+
+<div class="container">
+    <div id="tipo-area-display" class="area-tag">Cargando área...</div>
+    <h2>📋 Formulario de Auditoría</h2>
+    
+    <div class="header-info">
+        <div><label><strong>👤 Auditor</strong></label><select id="selectAuditor"></select></div>
+        <div style="margin-top:10px;">
+            <label><strong>📦 Ubicación / Unidad</strong></label>
+            <select id="selectBodega" onchange="filtrarYRenderizar()"></select>
+        </div>
+    </div>
+
+    <div id="renderArea">
+        <p style="text-align: center; color: #7f8c8d; padding: 20px;">Por favor, seleccione una ubicación para cargar el checklist correspondiente.</p>
+    </div>
+</div>
+
+<button id="btn-finalizar" onclick="enviarEvaluacion()">💾 Guardar Evaluación</button>
+
+<script>
+    const SUPABASE_URL = 'https://xjckzbegtvianurfvubp.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhqY2t6YmVndHZpYW51cmZ2dWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxOTYzMzUsImV4cCI6MjA4Mjc3MjMzNX0.64zrKi0p1KiDwtBODLRf8O4sRvnn0o9QyoQUYHvVFd0';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tipoAuditoria = urlParams.get('tipo') || 'almacen';
+
+    let preguntasMaestras = [];
+    let preguntasFiltradas = [];
+    let bodegasData = [];
+    let archivosAcumulados = {};
+
+    async function init() {
+        document.getElementById('tipo-area-display').innerText = `Auditoría de ${tipoAuditoria}`;
+        document.getElementById('btn-regresar').href = `menu_area.html?tipo=${tipoAuditoria}`;
+        
+        const { data: a } = await _supabase.from('auditores').select('*').eq('activo', true).order('nombre');
+        document.getElementById('selectAuditor').innerHTML = '<option value="">Selecciona Auditor...</option>' + a.map(x => `<option value="${x.id}">${x.nombre}</option>`).join('');
+
+        const { data: b } = await _supabase.from('bodegas').select('*').eq('tipo', tipoAuditoria).order('localizacion');
+        bodegasData = b;
+        document.getElementById('selectBodega').innerHTML = '<option value="">Selecciona Unidad...</option>' + b.map(x => `<option value="${x.id}">${x.localizacion} | ${x.nombre}</option>`).join('');
+
+        const { data: p } = await _supabase.from('configuracion_preguntas').select('*').eq('tipo', tipoAuditoria);
+        preguntasMaestras = p.sort((a, b) => a.desglose.localeCompare(b.desglose, undefined, { numeric: true }));
+    }
+
+    // --- NUEVA FUNCIÓN DE COMPRESIÓN ---
+    async function comprimirImagen(archivo) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(archivo);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    // Ajustamos el tamaño máximo (ej. 1200px de ancho)
+                    const MAX_WIDTH = 1200;
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Convertimos a Blob con calidad 0.7 (70%)
+                    ctx.canvas.toBlob((blob) => {
+                        const file = new File([blob], archivo.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now()
+                        });
+                        resolve(file);
+                    }, 'image/jpeg', 0.7);
+                };
+            };
+        });
+    }
+
+    function filtrarYRenderizar() {
+        const bodegaId = document.getElementById('selectBodega').value;
+        if (!bodegaId) {
+            document.getElementById('renderArea').innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">Seleccione una ubicación.</p>';
+            return;
+        }
+
+        const bodegaSel = bodegasData.find(x => x.id == bodegaId);
+        const deptoBodega = bodegaSel.departamento;
+
+        preguntasFiltradas = preguntasMaestras.filter(p => 
+            p.aplica_a_departamento === 'TODOS' || p.aplica_a_departamento === deptoBodega
+        );
+
+        document.getElementById('realtime-total-q').innerText = preguntasFiltradas.length;
+        renderizarAuditoria(preguntasFiltradas);
+        actualizarPuntajeRealTime();
+    }
+
+    function toggleSeccion(index) {
+        const content = document.getElementById(`seccion-content-${index}`);
+        const icon = document.getElementById(`icon-${index}`);
+        content.classList.toggle('hidden');
+        icon.innerText = content.classList.contains('hidden') ? "🔽" : "🔼";
+    }
+
+    function renderizarAuditoria(preguntas) {
+        const area = document.getElementById('renderArea');
+        let html = '', uTit = '', uDes = '', seccionIndex = -1;
+
+        if(preguntas.length === 0) {
+            area.innerHTML = '<p style="text-align:center; color:var(--danger); padding:20px;">No hay preguntas configuradas para este departamento.</p>';
+            return;
+        }
+
+        preguntas.forEach((p, i) => {
+            if (p.titulo !== uTit) {
+                if (seccionIndex !== -1) html += `</div>`;
+                seccionIndex++;
+                html += `
+                    <div class="seccion-titulo" onclick="toggleSeccion(${seccionIndex})">
+                        <span>${p.titulo} <small id="score-sec-${seccionIndex}" style="margin-left:10px; color:#bdc3c7;">(0%)</small></span>
+                        <span id="icon-${seccionIndex}">🔽</span>
+                    </div>
+                    <div id="seccion-content-${seccionIndex}" class="seccion-contenido hidden">`;
+                uTit = p.titulo;
+                uDes = ''; 
+            }
+            
+            if (p.desglose !== uDes) {
+                html += `<div class="desglose-titulo">📍 ${p.desglose}</div>`;
+                uDes = p.desglose;
+            }
+
+            html += `
+                <div class="pregunta-card" data-idx="${i}" data-secidx="${seccionIndex}">
+                    <p style="margin-top:0;"><strong>${p.pregunta}</strong></p>
+                    <div class="opciones">
+                        <div class="radio-btn">
+                            <input type="radio" name="opt-${i}" id="c-${i}" class="check-c" onchange="actualizarPuntajeRealTime()">
+                            <label for="c-${i}">CONFORME</label>
+                        </div>
+                        <div class="radio-btn">
+                            <input type="radio" name="opt-${i}" id="nc-${i}" class="check-nc" onchange="actualizarPuntajeRealTime()">
+                            <label for="nc-${i}">NO CONFORME</label>
+                        </div>
+                    </div>
+                    <div class="evidencia-box">
+                        <input type="text" id="obs-${i}" class="input-obs" placeholder="Nota u observación...">
+                        <input type="file" id="file-${i}" accept="image/*" capture="camera" multiple onchange="manejarSeleccion(${i})" style="display:none">
+                        <button class="btn-foto" onclick="document.getElementById('file-${i}').click()">📷 <span id="txt-foto-${i}">Tomar Foto</span></button>
+                        <div id="preview-${i}" class="preview-fotos"></div>
+                    </div>
+                </div>`;
+        });
+        if (seccionIndex !== -1) html += `</div>`; 
+        area.innerHTML = html;
+    }
+
+    function actualizarPuntajeRealTime() {
+        let pObtTotal = 0, pPosTotal = 0, contestadas = 0, secStats = {};
+
+        preguntasFiltradas.forEach((p, i) => {
+            const isC = document.getElementById(`c-${i}`).checked;
+            const isNC = document.getElementById(`nc-${i}`).checked;
+            const card = document.querySelector(`.pregunta-card[data-idx="${i}"]`);
+            if (!card) return;
+            const secIdx = card.getAttribute('data-secidx');
+
+            if (!secStats[secIdx]) secStats[secIdx] = { obt: 0, pos: 0 };
+
+            if (isC || isNC) {
+                contestadas++;
+                const ptsPosibles = parseFloat(p.ponderacion);
+                pObtTotal += isC ? ptsPosibles : 0;
+                pPosTotal += ptsPosibles;
+                secStats[secIdx].obt += isC ? ptsPosibles : 0;
+                secStats[secIdx].pos += ptsPosibles;
+            }
+        });
+
+        const totalPonderacionVisible = preguntasFiltradas.reduce((acc, curr) => acc + parseFloat(curr.ponderacion), 0);
+        const scoreGral = totalPonderacionVisible > 0 ? ((pObtTotal / totalPonderacionVisible) * 100).toFixed(1) : "0.0";
+        
+        document.getElementById('realtime-score').innerText = scoreGral;
+        document.getElementById('realtime-progress').innerText = contestadas;
+
+        Object.keys(secStats).forEach(sIdx => {
+            const label = document.getElementById(`score-sec-${sIdx}`);
+            const pSec = secStats[sIdx].pos > 0 ? ((secStats[sIdx].obt / secStats[sIdx].pos) * 100).toFixed(0) : "0";
+            label.innerText = `(${pSec}%)`;
+            label.style.color = pSec >= 90 ? "#2ecc71" : (pSec >= 70 ? "#f1c40f" : "#e74c3c");
+        });
+    }
+
+    async function manejarSeleccion(i) {
+        const input = document.getElementById(`file-${i}`);
+        if (!archivosAcumulados[i]) archivosAcumulados[i] = [];
+        
+        const btnTexto = document.getElementById(`txt-foto-${i}`);
+        btnTexto.innerText = "⏳ Comprimiendo...";
+
+        const nuevosArchivos = Array.from(input.files);
+        
+        for (const f of nuevosArchivos) {
+            // Comprimimos antes de añadir al array acumulado
+            const comprimido = await comprimirImagen(f);
+            archivosAcumulados[i].push(comprimido);
+        }
+
+        input.value = ""; 
+        actualizarVistaPrevia(i);
+    }
+
+    function actualizarVistaPrevia(i) {
+        const div = document.getElementById(`preview-${i}`);
+        div.innerHTML = "";
+        const lista = archivosAcumulados[i] || [];
+        document.getElementById(`txt-foto-${i}`).innerText = lista.length > 0 ? `✓ ${lista.length} Foto(s)` : "Tomar Foto";
+        lista.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const container = document.createElement("div");
+                container.className = "thumb-container";
+                container.innerHTML = `<img src="${e.target.result}" class="thumb"><button class="btn-del-foto" onclick="borrarFoto(${i}, ${index})">×</button>`;
+                div.appendChild(container);
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function borrarFoto(preIdx, fotoIdx) {
+        archivosAcumulados[preIdx].splice(fotoIdx, 1);
+        actualizarVistaPrevia(preIdx);
+    }
+
+    async function enviarEvaluacion() {
+        const audId = document.getElementById('selectAuditor').value;
+        const bodId = document.getElementById('selectBodega').value;
+        const btn = document.getElementById('btn-finalizar');
+        
+        if (!audId || !bodId) return alert("⚠️ Selecciona Auditor y Ubicación.");
+        if (preguntasFiltradas.length === 0) return alert("No hay preguntas para evaluar.");
+
+        btn.innerText = "⏳ Guardando...";
+        btn.disabled = true;
+        let pObt = 0, pTot = 0, respuestas = [];
+
+        for (let i = 0; i < preguntasFiltradas.length; i++) {
+            const isC = document.getElementById(`c-${i}`).checked;
+            const isNC = document.getElementById(`nc-${i}`).checked;
+            
+            if (!isC && !isNC) {
+                alert("Responde todas las preguntas antes de guardar.");
+                btn.disabled = false; btn.innerText = "💾 Guardar Evaluación";
+                return;
+            }
+
+            const pts = isC ? parseFloat(preguntasFiltradas[i].ponderacion) : 0;
+            pObt += pts; 
+            pTot += parseFloat(preguntasFiltradas[i].ponderacion);
+            
+            let urls = [];
+            const fotos = archivosAcumulados[i] || [];
+            for (let f = 0; f < fotos.length; f++) {
+                const path = `ev_${Date.now()}_p${i}_f${f}.jpg`;
+                const { data } = await _supabase.storage.from('evidencias').upload(path, fotos[f]);
+                if (data) {
+                    const { data: pub } = _supabase.storage.from('evidencias').getPublicUrl(path);
+                    urls.push(pub.publicUrl);
+                }
+            }
+            respuestas.push({
+                pregunta_id: preguntasFiltradas[i].id, cumple: isC, puntos_obtenidos: pts,
+                observaciones: document.getElementById(`obs-${i}`).value, foto_url: urls.join(',')
+            });
+        }
+
+        const score = ((pObt / pTot) * 100).toFixed(2);
+        const { data: evData, error: evErr } = await _supabase.from('evaluaciones').insert([{
+            bodega_id: bodId, auditor_id: audId, calificacion_final: score, tipo: tipoAuditoria
+        }]).select();
+
+        if (!evErr) {
+            await _supabase.from('respuestas').insert(respuestas.map(r => ({ ...r, evaluacion_id: evData[0].id })));
+            alert(`✅ Auditoría guardada con éxito: ${score}%`);
+            window.location.href = `menu_area.html?tipo=${tipoAuditoria}`;
+        } else {
+            btn.disabled = false;
+            btn.innerText = "💾 Guardar Evaluación";
+            alert("Error al guardar la evaluación.");
+        }
+    }
+
+    init();
+</script>
+</body>
+</html>
