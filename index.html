@@ -6,46 +6,50 @@
     <title>Sistema de Auditoría Maestro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
-        :root { --primary: #2c3e50; --almacen: #27ae60; --reparto: #8e44ad; --bg: #f4f7f6; }
+        /* 1. Agregamos el color naranja para montacargas */
+        :root { 
+            --primary: #2c3e50; 
+            --almacen: #27ae60; 
+            --reparto: #8e44ad; 
+            --montacargas: #e67e22; /* Color Naranja Industrial */
+            --bg: #f4f7f6; 
+        }
+        
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .gateway-container { width: 90%; max-width: 600px; text-align: center; padding: 20px 0; }
+        .gateway-container { width: 90%; max-width: 800px; text-align: center; padding: 20px 0; }
         h1 { color: var(--primary); margin-bottom: 30px; font-size: 1.8rem; }
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* Ajustamos a 3 columnas para que quepan bien los tres botones */
+        .options-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr 1fr; 
+            gap: 20px; 
+        }
+
         .area-card { 
             background: white; padding: 40px 20px; border-radius: 20px; 
             text-decoration: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center;
         }
         .area-card:hover { transform: translateY(-10px); }
-        .area-card .icon { font-size: 4rem; margin-bottom: 15px; }
-        .area-card h2 { margin: 0; color: var(--primary); }
-        .area-card p { color: #7f8c8d; font-size: 0.9em; margin-top: 10px; }
+        .area-card .icon { font-size: 3rem; margin-bottom: 15px; }
+        .area-card h2 { margin: 0; color: var(--primary); font-size: 1.2rem; }
+        .area-card p { color: #7f8c8d; font-size: 0.85em; margin-top: 10px; }
         
         .btn-almacen { border-top: 8px solid var(--almacen); }
         .btn-reparto { border-top: 8px solid var(--reparto); }
+        /* 2. Definimos la clase para el botón de montacargas */
+        .btn-montacargas { border-top: 8px solid var(--montacargas); }
 
-        /* Estilos del contenedor QR */
         .qr-section {
-            margin-top: 50px;
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            display: inline-block;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-top: 50px; background: white; padding: 20px; border-radius: 15px;
+            display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
-        .qr-section p {
-            margin: 0 0 10px 0;
-            font-size: 0.8em;
-            font-weight: bold;
-            color: var(--primary);
-            text-transform: uppercase;
-        }
-        #qrcode {
-            display: flex;
-            justify-content: center;
-        }
+        .qr-section p { margin: 0 0 10px 0; font-size: 0.8em; font-weight: bold; color: var(--primary); text-transform: uppercase; }
+        #qrcode { display: flex; justify-content: center; }
 
-        @media (max-width: 500px) { 
+        /* Ajuste para celulares */
+        @media (max-width: 600px) { 
             .options-grid { grid-template-columns: 1fr; } 
         }
     </style>
@@ -66,13 +70,13 @@
                 <h2>Reparto</h2>
                 <p>Logística y Unidades</p>
             </a>
-        </div>
 
             <a href="menu_area.html?tipo=montacargas" class="area-card btn-montacargas">
                 <span class="icon">🚜</span>
                 <h2>Montacargas</h2>
                 <p>Seguridad y Mantenimiento</p>
             </a>
+        </div>
         
         <div class="qr-section">
             <p>📲 Compartir App</p>
@@ -81,10 +85,9 @@
     </div>
 
     <script>
-        // Generar el QR al cargar la página
         window.onload = function() {
             new QRCode(document.getElementById("qrcode"), {
-                text: "https://jorgealbertopedrozac-spec.github.io/auditoria-bodegas/index.html",
+                text: window.location.href, // Dinámico: usa la URL actual
                 width: 128,
                 height: 128,
                 colorDark : "#2c3e50",
